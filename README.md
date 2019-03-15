@@ -40,7 +40,36 @@ The main advantage of implementing JSON as a doman-specific language is short cl
 Example
 -----------
 
-See JWriter99.c
+```
+#define JWRITER99_IMPLEMENTATION
+#include "JWriter99.c"
+
+void main() {
+    JStartConsoleObj {
+        JParam("string", "value");
+        JIntParam("int", 5);
+        JCustomParam("printf-like", "%d.%02d.%d", 31, 2, 2019);
+
+        JArr("array"){ JInt(3), JStr("string?"), JInt(7), JInt(1); }
+
+        JObj("subobject") {
+            JIntParam("ID", 67);
+            
+            JArr("subarray"){
+                JInt(2);
+
+                JObjBlock {
+                    JIntParam("ID", 23), JParam("color", "black");
+                };
+
+                JStr("string");
+            }
+        }
+    }
+}
+```
+
+For more complicated example see `JWriter99.c`
 
 
 Name
