@@ -4,9 +4,16 @@ extern "C" {
 
 #include <stdarg.h>
 
-#define J99STDCALL_ATTR __attribute__((stdcall))
+#if defined(_MSC_VER)
+    #define J99STDCALL_ATTR __stdcall
+#else
+    #define J99STDCALL_ATTR __attribute__((stdcall))
+#endif
 
 struct TJsonWrStruct {
+    // For internal usage
+    int _break;
+    
     // Options 
     int isFlat;
 
@@ -14,7 +21,6 @@ struct TJsonWrStruct {
     int level;
     char lastChar;
 
-    int _break;
     int bufLength;
     char buf[260]; // used for custom type prints only
     
@@ -36,7 +42,6 @@ struct TJsonMemBuffer {
     void* (*jsonwr_realloc) (void* ptr, unsigned int size);
 };
 
-int Return1();
 void JSymbFunc(struct TJsonWrStruct* jwr, char c);
 void JNewLineFunc(struct TJsonWrStruct* jwr);
 void JAddCommaFunc(struct TJsonWrStruct* jwr);
@@ -51,8 +56,11 @@ int dyn_mem_putc(int character, void* userData);
         for (struct TJsonWrStruct _JWrInternal = { \
             ._break = 1, \
             .isFlat = isFlatParam, \
-            .lastChar = 0, \
             .level = 0, \
+            .lastChar = 0, \
+            .bufLength = 0, \
+            .buf = {0}, \
+            .userData = 0, \
             .jsonwr_putc = putcFunc, \
             .jsonwr_vsprintf = vsprintfFunc }; \
          _JWrInternal._break; \
@@ -85,7 +93,7 @@ int dyn_mem_putc(int character, void* userData);
 #define JPrepareStruct(PointerToStructure) struct TJsonWrStruct _JWrInternal = *PointerToStructure
 
 #define JStaticMemOpen(JsonBuffer, MaxSize) \
-        for (struct TJsonMemBuffer _JMemBufInternal = { ._break = 1, .pos = 0, .size = MaxSize, .data = JsonBuffer, .jsonwr_realloc = 0}; \
+        for (struct TJsonMemBuffer _JMemBufInternal = { ._break = 1, .size = MaxSize, .pos = 0, .data = JsonBuffer, .jsonwr_realloc = 0}; \
         _JMemBufInternal._break; \
         _JMemBufInternal._break=0) \
                for (int _break = ((_JWrInternal.userData = &_JMemBufInternal), 1); _break; _break = 0)
@@ -95,10 +103,6 @@ int dyn_mem_putc(int character, void* userData);
 #endif
 
 #ifdef JWRITER99_IMPLEMENTATION
-    int Return1(){
-        return 1;
-    }
-    
     void JNewLineFunc(struct TJsonWrStruct* jwr) {
         const int JsonWr_Indent_Spaces = 2;
         if ((jwr->isFlat == 0) && (jwr->lastChar != '\n')) {
@@ -195,8 +199,8 @@ int dyn_mem_putc(int character, void* userData);
 
             jbuf->size *= 2; // Grow 2 times per step
             if (0 == jbuf->size) jbuf->size = 1024; // Initial size
-            
-            newbuf = jbuf->jsonwr_realloc(data, jbuf->size);
+
+            newbuf = (char*) jbuf->jsonwr_realloc(data, jbuf->size);
             if (0 != newbuf) {
                 data = newbuf;
                 jbuf->data = newbuf;
@@ -278,7 +282,7 @@ int dyn_mem_putc(int character, void* userData);
             JStartMem(_WinAPIBufInternal)
 
     #define JMemOpen(JsonBuffer) \
-            for (struct TJsonMemBuffer _JMemBufInternal = { ._break = 1, .pos = 0, .size = 0, .data = NULL, .jsonwr_realloc = winapi_jrealloc}; \
+            for (struct TJsonMemBuffer _JMemBufInternal = { ._break = 1, .size = 0, .pos = 0, .data = NULL, .jsonwr_realloc = winapi_jrealloc}; \
             _JMemBufInternal._break; \
             _JMemBufInternal._break=0, JsonBuffer=_JMemBufInternal.data) \
                    for (int _break = ((_JWrInternal.userData = &_JMemBufInternal), 1); _break; _break = 0)
